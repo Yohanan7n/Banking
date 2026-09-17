@@ -110,7 +110,12 @@ export default function LoginScreen({ navigation }: Props) {
 
       navigation.replace("Dashboard");
     } catch (error: any) {
-      const message = error.response?.data?.error || "Invalid email or password.";
+      let message = "Invalid email or password.";
+      if (!error.response) {
+        message = "Cannot connect to server. Please ensure the backend is running on port 3000.";
+      } else if (error.response?.data?.error) {
+        message = error.response.data.error;
+      }
       showAlert("Customer Login Failed", message);
     } finally {
       setLoading(false);
@@ -162,7 +167,12 @@ export default function LoginScreen({ navigation }: Props) {
 
       navigation.replace("Admin");
     } catch (error: any) {
-      const message = error.response?.data?.error || "Invalid administrator credentials or master PIN.";
+      let message = "Invalid administrator credentials or master PIN.";
+      if (!error.response) {
+        message = "Cannot connect to server. Please ensure the backend is running on port 3000.";
+      } else if (error.response?.data?.error) {
+        message = error.response.data.error;
+      }
       showAlert("Admin Access Denied", message);
     } finally {
       setLoading(false);

@@ -13,7 +13,15 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const trimmedEmail = email.trim();
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: trimmedEmail,
+          mode: 'insensitive',
+        },
+      },
+    });
     if (existingUser) {
       return res.status(400).json({ error: 'Email already exists.' });
     }
@@ -21,8 +29,8 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
-        fullName,
-        email,
+        fullName: fullName.trim(),
+        email: trimmedEmail.toLowerCase(),
         password: hashedPassword,
         balance: 1000.0, // Initial bonus
       },
@@ -43,14 +51,22 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const trimmedEmail = email.trim();
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {
+          equals: trimmedEmail,
+          mode: 'insensitive',
+        },
+      },
+    });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials.' });
+      return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
-      return res.status(401).json({ error: 'Invalid credentials.' });
+      return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
