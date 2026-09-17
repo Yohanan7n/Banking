@@ -1,0 +1,11 @@
+
+> mobile@1.0.0 web
+> set EXPO_ROUTER_DISABLE_RN_NAVIGATION_CHECK=1&& expo start --web
+
+Starting project at C:\Users\yohan\Desktop\Banking\BankingApp\mobile
+React Compiler enabled
+Starting Metro Bundler
+
+Waiting on http://localhost:8081
+
+Logs for your project will appear below.
