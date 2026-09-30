@@ -42,6 +42,7 @@
     "android": "set EXPO_ROUTER_DISABLE_RN_NAVIGATION_CHECK=1&& expo start --android",
     "ios": "set EXPO_ROUTER_DISABLE_RN_NAVIGATION_CHECK=1&& expo start --ios",
     "web": "set EXPO_ROUTER_DISABLE_RN_NAVIGATION_CHECK=1&& expo start --web",
+    "build:web": "expo export -p web",
     "lint": "expo lint"
   },
   "private": true
