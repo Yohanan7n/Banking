@@ -32,7 +32,7 @@ Anyone can explore and test the platform immediately:
 - **Transaction History:** Detailed personal ledger with deposit and withdrawal tracking.
 
 ### 🛡️ Administrator Console
-- **2FA Security Gate:** Dual-factor authorization protected by a 6-digit Master PIN (`889900`).
+- **2FA Security Gate:** Dual-factor authorization protected by a master administrator security PIN.
 - **Global Transaction Transparency:** Real-time audit trail showing:
   - 📤 **Sender (Sent By):** Full Name & Email
   - ➔ **Transfer Route**

@@ -163,7 +163,7 @@ export default function AdminScreen({ navigation }: Props) {
     setLoginLoading(true);
     try {
       const res = await api.post("/admin/verify-pin", {
-        pin: adminPin.trim() || "889900",
+        pin: adminPin.trim(),
         email: adminEmail.trim(),
         password: adminPassword.trim(),
       });

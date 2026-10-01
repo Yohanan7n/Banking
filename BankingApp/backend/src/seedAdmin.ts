@@ -26,8 +26,7 @@ async function main() {
   console.log("🎉 Admin Account Ready!");
   console.log("--------------------------------------------------");
   console.log(`👤 Admin Email:    ${admin.email}`);
-  console.log(`🔑 Admin Password: ${adminPassword}`);
-  console.log(`🛡️  Master PIN:     889900`);
+  console.log(`🛡️  Master PIN:     ${process.env.ADMIN_MASTER_PIN || 'Protected / Configured via environment'}`);
   console.log("==================================================");
 }
 
