@@ -235,6 +235,10 @@ router.post('/user/adjust-balance', authenticateAdmin, async (req: any, res: any
           title: txTitle,
           amount: numAmount,
           type: txType,
+          senderName: isCredit ? 'Bank Administrator' : targetUser.fullName,
+          senderEmail: isCredit ? (req.user?.email || 'admin@bank.com') : targetUser.email,
+          recipientName: isCredit ? targetUser.fullName : 'Bank Reserve (Debit)',
+          recipientEmail: isCredit ? targetUser.email : 'admin@bank.com',
           userId: targetUser.id,
         },
       }),
@@ -310,10 +314,55 @@ router.get('/transactions', authenticateAdmin, async (req: any, res: any) => {
         },
       },
       orderBy: { date: 'desc' },
-      take: 100,
+      take: 200,
     });
 
-    res.json(transactions);
+    const enrichedTransactions = transactions.map((tx: any) => {
+      let senderName = tx.senderName;
+      let senderEmail = tx.senderEmail;
+      let recipientName = tx.recipientName;
+      let recipientEmail = tx.recipientEmail;
+
+      // Smart inference for past transactions where columns were empty
+      if (!senderName || !recipientName) {
+        if (tx.title.startsWith('Transfer to ')) {
+          senderName = tx.user.fullName;
+          senderEmail = tx.user.email;
+          recipientName = tx.title.replace('Transfer to ', '').split(' (')[0].trim();
+          recipientEmail = '';
+        } else if (tx.title.startsWith('Transfer from ')) {
+          senderName = tx.title.replace('Transfer from ', '').split(' (')[0].trim();
+          senderEmail = '';
+          recipientName = tx.user.fullName;
+          recipientEmail = tx.user.email;
+        } else if (tx.title.includes('Deposit')) {
+          senderName = tx.title.includes('Admin') ? 'Bank Administrator' : 'Direct Deposit';
+          senderEmail = 'system@bank.com';
+          recipientName = tx.user.fullName;
+          recipientEmail = tx.user.email;
+        } else if (tx.title.includes('Adjustment') || tx.title.includes('Admin')) {
+          senderName = tx.type === 'DEPOSIT' ? 'Bank Administrator' : tx.user.fullName;
+          senderEmail = 'admin@bank.com';
+          recipientName = tx.type === 'DEPOSIT' ? tx.user.fullName : 'Bank Reserve';
+          recipientEmail = tx.user.email;
+        } else {
+          senderName = tx.type === 'DEPOSIT' ? 'Bank Deposit' : tx.user.fullName;
+          senderEmail = '';
+          recipientName = tx.type === 'DEPOSIT' ? tx.user.fullName : 'Withdrawal / ATM';
+          recipientEmail = tx.user.email;
+        }
+      }
+
+      return {
+        ...tx,
+        senderName: senderName || 'Direct Sender',
+        senderEmail: senderEmail || '',
+        recipientName: recipientName || 'Account Holder',
+        recipientEmail: recipientEmail || '',
+      };
+    });
+
+    res.json(enrichedTransactions);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch transaction ledger.' });
@@ -414,6 +463,10 @@ router.post('/user/create', authenticateAdmin, async (req: any, res: any) => {
           title: 'Initial Account Deposit (Admin Issued)',
           amount: balanceNum,
           type: 'DEPOSIT',
+          senderName: 'Bank Administrator',
+          senderEmail: req.user?.email || 'admin@bank.com',
+          recipientName: newUser.fullName,
+          recipientEmail: newUser.email,
           userId: newUser.id,
         },
       });

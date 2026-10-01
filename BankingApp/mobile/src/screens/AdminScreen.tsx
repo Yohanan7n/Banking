@@ -46,6 +46,10 @@ interface GlobalTransaction {
   amount: number;
   type: "DEPOSIT" | "WITHDRAWAL";
   date: string;
+  senderName?: string;
+  senderEmail?: string;
+  recipientName?: string;
+  recipientEmail?: string;
   user: {
     id: number;
     fullName: string;
@@ -66,6 +70,7 @@ export default function AdminScreen({ navigation }: Props) {
 
   // Admin Board Data State
   const [activeTab, setActiveTab] = useState<"USERS" | "TRANSACTIONS">("USERS");
+  const [txFilter, setTxFilter] = useState<"ALL" | "TRANSFERS" | "DEPOSITS" | "WITHDRAWALS">("ALL");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [transactions, setTransactions] = useState<GlobalTransaction[]>([]);
@@ -445,12 +450,29 @@ export default function AdminScreen({ navigation }: Props) {
 
   const filteredTransactions = transactions.filter((t) => {
     const q = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
+      !q ||
       t.title.toLowerCase().includes(q) ||
       t.user.fullName.toLowerCase().includes(q) ||
       t.user.email.toLowerCase().includes(q) ||
-      t.amount.toString().includes(q)
-    );
+      (t.senderName && t.senderName.toLowerCase().includes(q)) ||
+      (t.senderEmail && t.senderEmail.toLowerCase().includes(q)) ||
+      (t.recipientName && t.recipientName.toLowerCase().includes(q)) ||
+      (t.recipientEmail && t.recipientEmail.toLowerCase().includes(q)) ||
+      t.amount.toString().includes(q);
+
+    if (!matchesSearch) return false;
+
+    if (txFilter === "TRANSFERS") {
+      return t.title.toLowerCase().includes("transfer");
+    }
+    if (txFilter === "DEPOSITS") {
+      return t.type === "DEPOSIT" && !t.title.toLowerCase().includes("transfer");
+    }
+    if (txFilter === "WITHDRAWALS") {
+      return t.type === "WITHDRAWAL" && !t.title.toLowerCase().includes("transfer");
+    }
+    return true;
   });
 
   // Initial loading state
@@ -799,52 +821,149 @@ export default function AdminScreen({ navigation }: Props) {
         {/* TAB 2: GLOBAL TRANSACTIONS LIST */}
         {activeTab === "TRANSACTIONS" && (
           <View style={styles.sectionContainer}>
+            {/* Filter Pills */}
+            <View style={styles.txFilterRow}>
+              <TouchableOpacity
+                style={[styles.txFilterChip, txFilter === "ALL" && styles.txFilterChipActive]}
+                onPress={() => setTxFilter("ALL")}
+              >
+                <Text style={[styles.txFilterChipText, txFilter === "ALL" && styles.txFilterChipTextActive]}>
+                  All ({transactions.length})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.txFilterChip, txFilter === "TRANSFERS" && styles.txFilterChipActive]}
+                onPress={() => setTxFilter("TRANSFERS")}
+              >
+                <Text style={[styles.txFilterChipText, txFilter === "TRANSFERS" && styles.txFilterChipTextActive]}>
+                  💸 P2P Transfers
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.txFilterChip, txFilter === "DEPOSITS" && styles.txFilterChipActive]}
+                onPress={() => setTxFilter("DEPOSITS")}
+              >
+                <Text style={[styles.txFilterChipText, txFilter === "DEPOSITS" && styles.txFilterChipTextActive]}>
+                  📥 Deposits
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.txFilterChip, txFilter === "WITHDRAWALS" && styles.txFilterChipActive]}
+                onPress={() => setTxFilter("WITHDRAWALS")}
+              >
+                <Text style={[styles.txFilterChipText, txFilter === "WITHDRAWALS" && styles.txFilterChipTextActive]}>
+                  📤 Withdrawals
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             {filteredTransactions.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Text style={styles.emptyText}>No transactions found.</Text>
+                <Text style={styles.emptyText}>No matching transactions found.</Text>
               </View>
             ) : (
               filteredTransactions.map((tx) => {
+                const isTransfer = tx.title.toLowerCase().includes("transfer");
                 const isDeposit = tx.type === "DEPOSIT";
                 const dateObj = new Date(tx.date);
 
+                const senderDisplay = tx.senderName || (isDeposit ? "Direct / Bank Deposit" : tx.user.fullName);
+                const senderEmailDisplay = tx.senderEmail || (isDeposit ? "bank@system" : tx.user.email);
+                const recipientDisplay = tx.recipientName || (isDeposit ? tx.user.fullName : "ATM / External");
+                const recipientEmailDisplay = tx.recipientEmail || (isDeposit ? tx.user.email : "");
+
                 return (
-                  <View key={tx.id} style={styles.txRow}>
-                    <View style={styles.txLeft}>
+                  <View key={tx.id} style={styles.txAuditCard}>
+                    {/* Header: Category Badge + Amount */}
+                    <View style={styles.txCardHeader}>
                       <View
                         style={[
-                          styles.txIcon,
-                          isDeposit ? styles.depositIconBg : styles.withdrawalIconBg,
+                          styles.txCategoryBadge,
+                          isTransfer
+                            ? styles.txBadgeTransfer
+                            : isDeposit
+                            ? styles.txBadgeDeposit
+                            : styles.txBadgeWithdrawal,
                         ]}
                       >
                         <Text
                           style={[
-                            styles.txIconText,
-                            isDeposit ? styles.depositColor : styles.withdrawalColor,
+                            styles.txCategoryBadgeText,
+                            isTransfer
+                              ? styles.txBadgeTransferText
+                              : isDeposit
+                              ? styles.txBadgeDepositText
+                              : styles.txBadgeWithdrawalText,
                           ]}
                         >
-                          {isDeposit ? "↓" : "↑"}
+                          {isTransfer
+                            ? "🔄 P2P MONEY TRANSFER"
+                            : isDeposit
+                            ? "📥 DEPOSIT"
+                            : "📤 WITHDRAWAL"}
                         </Text>
                       </View>
-                      <View>
-                        <Text style={styles.txTitle}>{tx.title}</Text>
-                        <Text style={styles.txUser}>
-                          Account: {tx.user.fullName} ({tx.user.email})
+
+                      <Text
+                        style={[
+                          styles.txCardAmount,
+                          isDeposit ? styles.depositColor : styles.withdrawalColor,
+                        ]}
+                      >
+                        {isDeposit ? "+" : "-"}${tx.amount.toFixed(2)}
+                      </Text>
+                    </View>
+
+                    {/* Sender and Recipient Flow Box */}
+                    <View style={styles.partyBox}>
+                      {/* Sender */}
+                      <View style={styles.partyColumn}>
+                        <Text style={styles.partyRoleLabel}>📤 SENDER (Sent By)</Text>
+                        <Text style={styles.partyName} numberOfLines={1}>
+                          {senderDisplay}
                         </Text>
-                        <Text style={styles.txDate}>
+                        {senderEmailDisplay ? (
+                          <Text style={styles.partyEmail} numberOfLines={1}>
+                            {senderEmailDisplay}
+                          </Text>
+                        ) : null}
+                      </View>
+
+                      {/* Direction Arrow */}
+                      <View style={styles.partyArrowContainer}>
+                        <Text style={styles.partyArrow}>➔</Text>
+                      </View>
+
+                      {/* Recipient */}
+                      <View style={[styles.partyColumn, { alignItems: "flex-end" }]}>
+                        <Text style={styles.partyRoleLabel}>📥 RECIPIENT (Received By)</Text>
+                        <Text style={[styles.partyName, { textAlign: "right" }]} numberOfLines={1}>
+                          {recipientDisplay}
+                        </Text>
+                        {recipientEmailDisplay ? (
+                          <Text style={[styles.partyEmail, { textAlign: "right" }]} numberOfLines={1}>
+                            {recipientEmailDisplay}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    {/* Footer Info: Description, Ledger Account, Date, Ref ID */}
+                    <View style={styles.txCardFooter}>
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        <Text style={styles.txCardTitle}>{tx.title}</Text>
+                        <Text style={styles.txLedgerOwner}>
+                          Account Ledger: <Text style={{ color: "#cbd5e1", fontWeight: "600" }}>{tx.user.fullName}</Text> ({tx.user.email})
+                        </Text>
+                      </View>
+
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.txCardRef}>#TX-{tx.id}</Text>
+                        <Text style={styles.txCardTime}>
                           {dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </Text>
                       </View>
                     </View>
-
-                    <Text
-                      style={[
-                        styles.txAmount,
-                        isDeposit ? styles.depositColor : styles.withdrawalColor,
-                      ]}
-                    >
-                      {isDeposit ? "+" : "-"}${tx.amount.toFixed(2)}
-                    </Text>
                   </View>
                 );
               })
@@ -1683,67 +1802,165 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  txRow: {
+  txFilterRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  txFilterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: "rgba(30, 41, 59, 0.7)",
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.15)",
+  },
+  txFilterChipActive: {
+    backgroundColor: "#7e22ce",
+    borderColor: "#a855f7",
+  },
+  txFilterChipText: {
+    color: "#94a3b8",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  txFilterChipTextActive: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  txAuditCard: {
+    backgroundColor: "rgba(15, 23, 42, 0.88)",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.15)",
+    padding: 16,
+    marginBottom: 14,
+  },
+  txCardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    padding: 15,
-    borderRadius: 14,
+    marginBottom: 12,
+  },
+  txCategoryBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: "rgba(148, 163, 184, 0.12)",
   },
-  txLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flex: 1,
+  txCategoryBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
-  txIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: "center",
-    alignItems: "center",
+  txBadgeTransfer: {
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    borderColor: "rgba(129, 140, 248, 0.4)",
   },
-  depositIconBg: {
-    backgroundColor: "rgba(16, 185, 129, 0.18)",
-    borderWidth: 1,
+  txBadgeTransferText: {
+    color: "#818cf8",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  txBadgeDeposit: {
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
     borderColor: "rgba(52, 211, 153, 0.4)",
   },
-  withdrawalIconBg: {
-    backgroundColor: "rgba(244, 63, 94, 0.18)",
-    borderWidth: 1,
+  txBadgeDepositText: {
+    color: "#34d399",
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  txBadgeWithdrawal: {
+    backgroundColor: "rgba(244, 63, 94, 0.15)",
     borderColor: "rgba(251, 113, 133, 0.4)",
   },
-  txIconText: {
-    fontSize: 16,
+  txBadgeWithdrawalText: {
+    color: "#fb7185",
+    fontSize: 11,
     fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  txCardAmount: {
+    fontSize: 18,
+    fontWeight: "900",
+  },
+  partyBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(30, 41, 59, 0.5)",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.1)",
+  },
+  partyColumn: {
+    flex: 1,
+  },
+  partyRoleLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  partyName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#f8fafc",
+  },
+  partyEmail: {
+    fontSize: 11,
+    color: "#64748b",
+    marginTop: 1,
+  },
+  partyArrowContainer: {
+    paddingHorizontal: 10,
+  },
+  partyArrow: {
+    fontSize: 16,
+    color: "#818cf8",
+    fontWeight: "900",
+  },
+  txCardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(148, 163, 184, 0.1)",
+  },
+  txCardTitle: {
+    fontSize: 12,
+    color: "#e2e8f0",
+    fontWeight: "600",
+  },
+  txLedgerOwner: {
+    fontSize: 11,
+    color: "#64748b",
+    marginTop: 3,
+  },
+  txCardRef: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#94a3b8",
+  },
+  txCardTime: {
+    fontSize: 10,
+    color: "#64748b",
+    marginTop: 2,
   },
   depositColor: {
     color: "#34d399",
   },
   withdrawalColor: {
     color: "#fb7185",
-  },
-  txTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#f8fafc",
-  },
-  txUser: {
-    fontSize: 12,
-    color: "#94a3b8",
-    marginTop: 2,
-  },
-  txDate: {
-    fontSize: 11,
-    color: "#64748b",
-    marginTop: 2,
-  },
-  txAmount: {
-    fontSize: 16,
-    fontWeight: "800",
   },
   modalOverlay: {
     flex: 1,

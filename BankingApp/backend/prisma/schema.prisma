@@ -19,12 +19,16 @@ model User {
 }
 
 model Transaction {
-  id        Int      @id @default(autoincrement())
-  title     String
-  amount    Float
-  type      String   // "DEPOSIT" or "WITHDRAWAL"
-  date      DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  title          String
+  amount         Float
+  type           String   // "DEPOSIT" or "WITHDRAWAL"
+  date           DateTime @default(now())
+  senderName     String?
+  senderEmail    String?
+  recipientName  String?
+  recipientEmail String?
   
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
+  user           User     @relation(fields: [userId], references: [id])
+  userId         Int
 }
