@@ -1,0 +1,9 @@
+# EAS ignore for mobile
+node_modules
+.expo
+dist
+web-build
+.agents
+.claude
+.windsurf
+*.log

@@ -1,0 +1,12 @@
+# Ignore backend and agent folders for EAS builds
+BankingApp/backend
+.agents
+.claude
+.windsurf
+**/node_modules
+**/.expo
+**/dist
+**/.agents
+**/.claude
+**/.windsurf
+*.log
