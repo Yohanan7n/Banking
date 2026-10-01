@@ -14,15 +14,12 @@ A production-grade, secure digital banking platform featuring a **React Native &
 
 ---
 
-## 🔑 Demo & Admin Credentials
+## 🚀 Getting Started
 
-You can test the application using the pre-seeded Bank Administrator account:
-
-- **Admin Email:** `admin@bank.com`
-- **Admin Password:** `Admin@12345`
-- **Master Security PIN:** `889900`
-
-*(Or tap **Register** inside the app to create a new customer account with an initial balance!)*
+Anyone can explore and test the platform immediately:
+- Open the **Web App** or install the **Android APK**.
+- Tap **Register** to create a new customer account with an instant starting balance.
+- Perform peer-to-peer transfers, deposits, and manage transactions in real-time.
 
 ---
 
@@ -83,4 +80,4 @@ npx expo start
 ---
 
 ## 📄 License
-This project is open source and available under the [MIT License](BankingApp/mobile/LICENSE).
+Copyright © 2026 Yohanan. All Rights Reserved.
